@@ -1,18 +1,7 @@
-# Build and Release Folders
-bin-debug/
-bin-release/
-[Oo]bj/
-[Bb]in/
-
-# Other files and folders
-.settings/
-
-# Executables
-*.swf
-*.air
-*.ipa
-*.apk
-
-# Project files, i.e. `.project`, `.actionScriptProperties` and `.flexProperties`
-# should NOT be excluded as they contain compiler settings and other important
-# information for Eclipse / Flash Builder.
+/arduFPGA_iCE40UP5K_arduboy_emulator_tcr.dir/
+/impl_1/
+arduFPGA_iCE40UP5K_arduboy_emulator_tcl.html
+drc.log
+gen_embedded.log
+pyout.log
+tmp_synthesis.log

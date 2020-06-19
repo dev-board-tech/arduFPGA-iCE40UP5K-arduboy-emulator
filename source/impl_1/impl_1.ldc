@@ -1,0 +1,2 @@
+#DISABLED# create_clock -name {sys_clk} -period 62.5 -waveform {0 31.25} [get_nets sys_clk]
+#DISABLED# create_clock -name {clk} -period 62.5 -waveform {0 31.25} [get_ports clk]
