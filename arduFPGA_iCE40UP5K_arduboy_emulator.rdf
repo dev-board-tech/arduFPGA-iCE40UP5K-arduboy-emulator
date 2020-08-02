@@ -69,6 +69,9 @@
         <Source name="../hdl-core-common/io-screen/vga.v" type="Verilog" type_short="Verilog">
             <Options/>
         </Source>
+        <Source name="../hdl-core-common/io-screen/vga_simple.v" type="Verilog" type_short="Verilog">
+            <Options/>
+        </Source>
         <Source name="source/impl_1/sim.v" type="Verilog" type_short="Verilog">
             <Options/>
         </Source>

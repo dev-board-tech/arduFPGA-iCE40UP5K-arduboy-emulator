@@ -17,12 +17,12 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
-
+ 
 `timescale 1ns / 1ps
 
 `include "mega-def.v"
 
-`define REV							"1.0"
+`define REV							"1.1"
 `define USE_PLL						"TRUE"
 
 `define PLATFORM					"iCE40UP"
@@ -230,10 +230,10 @@ rtc #(
 	.PERIOD_STATIC(16000),
 	.CNT_SIZE(14)
 	)rtc_inst(
-	.rst(io_rst),
-	.clk(sys_clk),
-	.intr(nmi_sig),
-	.int_rst(nmi_rst)
+	.rst_i(io_rst),
+	.clk_i(sys_clk),
+	.intr_o(nmi_sig),
+	.int_ack_i(nmi_rst)
 	);
  
 wire [5:0]dummy_out_port_a;
@@ -252,17 +252,17 @@ atmega_pio # (
 	.INITIAL_OUTPUT_VALUE(8'b00000011),
 	.INITIAL_DIR_VALUE(8'b00000011)
 )pio_a(
-	.rst(io_rst),
-	.clk(sys_clk),
-	.addr(io_addr[7:0]),
-	.wr(io_write/* & sec_en*/),
-	.rd(io_read),
-	.bus_in(io_out),
-	.bus_out(dat_pa_d_out),
+	.rst_i(io_rst),
+	.clk_i(sys_clk),
+	.addr_i(io_addr[7:0]),
+	.wr_i(io_write/* & sec_en*/),
+	.rd_i(io_read),
+	.bus_i(io_out),
+	.bus_o(dat_pa_d_out),
 
-	.io_in({BTN_UP_reg, BTN_DN_reg, BTN_BACK_reg, BTN_OK_reg, BTN_INTERRUPT_reg, 3'b000}),
-	.io_out({dummy_out_port_a, APP_SS, DES_SS}),
-	.pio_out_io_connect()
+	.io_i({BTN_UP_reg, BTN_DN_reg, BTN_BACK_reg, BTN_OK_reg, BTN_INTERRUPT_reg, 3'b000}),
+	.io_o({dummy_out_port_a, APP_SS, DES_SS}),
+	.pio_out_io_connect_o()
 	);
 
 generate
