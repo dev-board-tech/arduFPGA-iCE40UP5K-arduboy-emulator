@@ -57,6 +57,9 @@
         <Source name="../hdl-core-common/io-atmega/atmega-uart.v" type="Verilog" type_short="Verilog">
             <Options/>
         </Source>
+        <Source name="../hdl-core-common/io-atmega/atmega_twi.v" type="Verilog" type_short="Verilog">
+            <Options/>
+        </Source>
         <Source name="../hdl-core-mega-xmega/template/atmega32u4_arduboy.v" type="Verilog" type_short="Verilog">
             <Options/>
         </Source>
@@ -64,9 +67,6 @@
             <Options/>
         </Source>
         <Source name="../hdl-core-common/io-screen/ssd1306-to-vga.v" type="Verilog" type_short="Verilog">
-            <Options/>
-        </Source>
-        <Source name="../hdl-core-common/io-screen/vga.v" type="Verilog" type_short="Verilog">
             <Options/>
         </Source>
         <Source name="../hdl-core-common/io-screen/vga_simple.v" type="Verilog" type_short="Verilog">

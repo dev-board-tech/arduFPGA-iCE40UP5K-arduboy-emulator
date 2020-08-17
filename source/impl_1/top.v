@@ -17,7 +17,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
- 
+
 `timescale 1ns / 1ps
 
 `include "mega-def.v"
@@ -68,7 +68,7 @@ module top(
 	inout D7_P,
 	inout D7_N
 	);
-
+ 
 wire pll_locked;
 reg [3:0]pll_locked_buf;
 wire from_pll_clk;
@@ -111,6 +111,7 @@ wire ssd1306_rst;
 wire [2:0]ld;
 
 wire nmi_sig;
+wire nmi_ack;
 wire nmi_rst;
 
 wire uc_miso;
@@ -153,15 +154,15 @@ begin
 	//D0_N_reg <= D0_N;
 	//uSD_CD_reg <= uSD_CD;
 end
- 
+
 atmega32u4_arduboy # (
 	.PLATFORM(`PLATFORM),
-	.BOOT_ADDR(16'hFC00),
+	.BOOT_ADDR(16'h7800),
 	.ARDU_FPGA_ICE40UP5K_GAME("FALSE"),
 	
 	.CORE_TYPE(`MEGA_ENHANCED_128K),
 	.ROM_ADDR_WIDTH(15), // 14 = 16K Words / 32K Bytes; 15 = 32K Words / 64K Bytes; 16 = 64K Words / 128K Bytes Not supported yet.
-	.BOOT_ADDR_WIDTH(10), // 1024 Words / 2048 Bytes, how big the first stage boot-loader ROM to be.
+	.BOOT_ADDR_WIDTH(11), // 1024 Words / 2048 Bytes, how big the first stage boot-loader ROM to be.
 	.BUS_ADDR_DATA_LEN(16), // Max 64K Bytes.
 	.RAM_TYPE("SRAM"),  // "BLOCK","SRAM"// If "SRAM" is choosen, will be a 32KB block of RAM.
 	.RAM_ADDR_WIDTH(15), // 32KB, if you use "SRAM" this value need to be 15.
@@ -185,6 +186,7 @@ atmega32u4_arduboy # (
 	.USE_TIMER_4("TRUE"),
 	.USE_SPI_1("TRUE"),
 	.USE_UART_1("TRUE"),
+	.USE_TWI_1("FALSE"),
 	.USE_EEPROM("TRUE"),
 	.USE_RNG_AS_ADC("TRUE")
 ) atmega32u4_arduboy_inst (
@@ -193,7 +195,7 @@ atmega32u4_arduboy # (
 	.clk(sys_clk),
 	.clk_pll(pll_clk),
 	.nmi_sig(nmi_sig),
-	.nmi_rst(nmi_rst),
+	.nmi_ack(nmi_ack),
 	.sec_reg_rst(sec_reg_rst),
 	.sec_en(sec_en),
     .buttons({D2_P_reg, D2_N_reg, D1_P_reg, D1_N_reg, D0_P_reg, D0_N_reg}),
@@ -215,14 +217,17 @@ atmega32u4_arduboy # (
 	.VS_DREQ(),
 	.uart_tx(UART_TX),
 	.uart_rx(UART_RX),
-	
+	.twi_scl(),
+	.twi_sda(),
+
 	.io_addr(io_addr),
 	.io_out(io_out),
 	.io_write(io_write),
 	.io_in(io_in),
 	.io_read(io_read),
 	.io_sel(io_sel),
-	.io_rst(io_rst)
+	.io_rst(io_rst),
+	.nmi_rst(nmi_rst)
 );
 
 
@@ -230,10 +235,10 @@ rtc #(
 	.PERIOD_STATIC(16000),
 	.CNT_SIZE(14)
 	)rtc_inst(
-	.rst_i(io_rst),
+	.rst_i(nmi_rst),
 	.clk_i(sys_clk),
-	.intr_o(nmi_sig),
-	.int_ack_i(nmi_rst)
+	.int_o(nmi_sig),
+	.int_ack_i(nmi_ack)
 	);
  
 wire [5:0]dummy_out_port_a;
