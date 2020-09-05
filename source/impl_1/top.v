@@ -25,6 +25,24 @@
 `define REV							"1.1"
 `define USE_PLL						"TRUE"
 
+`define USE_PIO_B					"TRUE"
+`define USE_PIO_C					"TRUE"
+`define USE_PIO_D					"TRUE"
+`define USE_PIO_E					"TRUE"
+`define USE_PIO_F					"TRUE"
+`define USE_PLL						"TRUE"
+`define USE_PLL_HI_FREQ				"FALSE"
+`define USE_TIMER_0					"TRUE"
+`define USE_TIMER_1					"FALSE"
+`define USE_TIMER_3					"TRUE"
+`define USE_TIMER_4					"TRUE"
+`define USE_SPI_1					"TRUE"
+`define USE_UART_1					"TRUE"
+`define USE_TWI_1					"FALSE"
+`define USE_EEPROM					"TRUE"
+`define USE_RNG_AS_ADC				"TRUE"
+`define USE_COMPOSITE_VIDEO_OUT		"TRUE"
+
 `define PLATFORM					"iCE40UP"
 `define FLASH_ROM_FILE_NAME			"l1_boot_ld"
 
@@ -84,6 +102,17 @@ begin
 	pll_locked_buf <= {pll_locked_buf[2:0], pll_locked}; 
 end
 
+wire ntsc_clk;
+
+HSOSC
+#(
+  .CLKHF_DIV ("0b00")
+) HSOSC_inst (
+  .CLKHFPU (1'b1),  // I
+  .CLKHFEN (1'b1),  // I
+  .CLKHF   (ntsc_clk)   // O
+);
+
 PLL_DEV_16M PLL_inst(
 	.ref_clk_i(clk), 
 	.bypass_i(1'b0),
@@ -119,6 +148,8 @@ wire uc_mosi;
 
 wire sec_reg_rst;
 wire sec_en;
+
+wire enable_ntsc_out;
 
 reg BTN_INTERRUPT_reg, BTN_BACK_reg, BTN_OK_reg, BTN_UP_reg, BTN_DN_reg, D2_P_reg, D2_N_reg, D1_P_reg, D1_N_reg, D0_P_reg, D0_N_reg, uSD_CD_reg;
 always @ (*)
@@ -173,22 +204,22 @@ atmega32u4_arduboy # (
 
 	.REGS_REGISTERED("FALSE"),
 	.ROM_PATH(`FLASH_ROM_FILE_NAME),
-	.USE_PIO_B("TRUE"),
-	.USE_PIO_C("TRUE"),
-	.USE_PIO_D("TRUE"),
-	.USE_PIO_E("TRUE"),
-	.USE_PIO_F("TRUE"),
-	.USE_PLL("TRUE"),
-	.USE_PLL_HI_FREQ("FALSE"),
-	.USE_TIMER_0("TRUE"),
-	.USE_TIMER_1("FALSE"),
-	.USE_TIMER_3("TRUE"),
-	.USE_TIMER_4("TRUE"),
-	.USE_SPI_1("TRUE"),
-	.USE_UART_1("TRUE"),
-	.USE_TWI_1("FALSE"),
-	.USE_EEPROM("TRUE"),
-	.USE_RNG_AS_ADC("TRUE")
+	.USE_PIO_B(`USE_PIO_B),
+	.USE_PIO_C(`USE_PIO_C),
+	.USE_PIO_D(`USE_PIO_D),
+	.USE_PIO_E(`USE_PIO_E),
+	.USE_PIO_F(`USE_PIO_F),
+	.USE_PLL(`USE_PLL),
+	.USE_PLL_HI_FREQ(`USE_PLL_HI_FREQ),
+	.USE_TIMER_0(`USE_TIMER_0),
+	.USE_TIMER_1(`USE_TIMER_1),
+	.USE_TIMER_3(`USE_TIMER_3),
+	.USE_TIMER_4(`USE_TIMER_4),
+	.USE_SPI_1(`USE_SPI_1),
+	.USE_UART_1(`USE_UART_1),
+	.USE_TWI_1(`USE_TWI_1),
+	.USE_EEPROM(`USE_EEPROM),
+	.USE_RNG_AS_ADC(`USE_RNG_AS_ADC)
 ) atmega32u4_arduboy_inst (
 	.core_rst(sys_rst),
 	.dev_rst(sys_rst),
@@ -241,7 +272,8 @@ rtc #(
 	.int_ack_i(nmi_ack)
 	);
  
-wire [5:0]dummy_out_port_a;
+wire [2:0]dummy_out_port_a_1;
+wire [1:0]dummy_out_port_a_2;
 wire [7:0]dat_pa_d_out;
 atmega_pio # (
 	.PLATFORM(`PLATFORM),
@@ -266,10 +298,68 @@ atmega_pio # (
 	.bus_o(dat_pa_d_out),
 
 	.io_i({BTN_UP_reg, BTN_DN_reg, BTN_BACK_reg, BTN_OK_reg, BTN_INTERRUPT_reg, 3'b000}),
-	.io_o({dummy_out_port_a, APP_SS, DES_SS}),
+	.io_o({dummy_out_port_a_2, enable_ntsc_out, dummy_out_port_a_1, APP_SS, DES_SS}),
 	.pio_out_io_connect_o()
 	);
 
+if( `USE_COMPOSITE_VIDEO_OUT == "TRUE")
+begin
+	
+wire [12:0]lcd_h_cnt;
+wire [12:0]lcd_v_cnt;
+
+wire pixel_is_visible;
+wire [0:0]ssd1306_rgb_data;
+wire [1:0]ntsc_out;
+
+assign {D7_N, D7_P} = ntsc_out;
+
+localparam [3:0]  SIGNAL_LEVEL_SYNC         = 4'b0000,
+                    SIGNAL_LEVEL_BLANK        = 4'b0001,
+                    SIGNAL_LEVEL_DARK_GREY    = 4'b0011,
+                    SIGNAL_LEVEL_LIGHT_GREY   = 4'b0111,
+                    SIGNAL_LEVEL_WHITE        = 4'b1111;
+
+interlaced_ntsc # (
+	.PIXEL_NUANCE_DEPTH(1)
+)interlaced_ntsc_inst(
+    .rst_i(sys_rst),
+    .clk_i(ntsc_clk),
+    .pixel_data_i(pixel_is_visible ? (ssd1306_rgb_data[0] ? SIGNAL_LEVEL_WHITE : SIGNAL_LEVEL_BLANK) : SIGNAL_LEVEL_BLANK),
+    .h_sync_out_o(), // single clock tick indicating pixel_y will incrememt on next clock (for debugging)
+    .v_sync_out_o(), // single clock tick indicating pixel_y will reset to 0 or 1 on next clock, depending on the field (for debugging)
+    .pixel_y_o(lcd_v_cnt[9:0]),    // which line
+    .pixel_x_o(lcd_h_cnt[9:0]),
+    .pixel_is_visible_o(pixel_is_visible),
+    .ntsc_out_o(ntsc_out)
+);
+
+ssd1306 # (
+	.X_OLED_SIZE(128),
+	.Y_OLED_SIZE(64),
+	.X_PARENT_SIZE(560),
+	.Y_PARENT_SIZE(400),
+	.PIXEL_INACTIVE_COLOR(1'b0),
+	.PIXEL_ACTIVE_COLOR(1'b1),
+	.INACTIVE_DISPLAY_COLOR(32'h10101010),
+	.VRAM_BUFFERED_OUTPUT("TRUE"),
+	.FULL_COLOR_OUTPUT("FALSE")
+)ssd1306_inst(
+	.rst_i(~ssd1306_rst),
+	.clk_i(sys_clk),
+	
+	.edge_color_i(1'b0),
+	.raster_x_i(lcd_h_cnt),
+	.raster_y_i(lcd_v_cnt),
+	.raster_clk_i(ntsc_clk),
+	.raster_d_o(ssd1306_rgb_data),
+	
+	.ss_i(ssd1306_ss),
+	.scl_i(ssd1306_scl),
+	.mosi_i(MOSI),
+	.dc_i(ssd1306_dc)
+);
+end
 generate
 
 if(`REV == "1.0")
