@@ -33,15 +33,19 @@
 `define USE_PLL						"TRUE"
 `define USE_PLL_HI_FREQ				"FALSE"
 `define USE_TIMER_0					"TRUE"
+`define USE_REDUCED_TIM0			"TRUE"
 `define USE_TIMER_1					"FALSE"
+`define USE_REDUCED_TIM1			"TRUE"
 `define USE_TIMER_3					"TRUE"
+`define USE_REDUCED_TIM3			"TRUE"
 `define USE_TIMER_4					"TRUE"
 `define USE_SPI_1					"TRUE"
 `define USE_UART_1					"TRUE"
+//`define USE_USB2UART
 `define USE_TWI_1					"FALSE"
 `define USE_EEPROM					"TRUE"
 `define USE_RNG_AS_ADC				"TRUE"
-`define USE_COMPOSITE_VIDEO_OUT		"TRUE"
+`define USE_COMPOSITE_VIDEO_OUT		"FALSE"
 
 `define PLATFORM					"iCE40UP"
 `define FLASH_ROM_FILE_NAME			"l1_boot_ld"
@@ -123,6 +127,7 @@ PLL_DEV_16M PLL_inst(
 );
 
 assign sys_clk = `USE_PLL == "TRUE" ? from_pll_clk : clk;
+wire clk48m_i = ntsc_clk;
 
 //always @ (posedge sys_clk_int) sys_clk_t <= sys_clk_t + 2'h1;
  
@@ -185,7 +190,7 @@ begin
 	//D0_N_reg <= D0_N;
 	//uSD_CD_reg <= uSD_CD;
 end
-
+ 
 atmega32u4_arduboy # (
 	.PLATFORM(`PLATFORM),
 	.BOOT_ADDR(16'h7800),
@@ -198,7 +203,7 @@ atmega32u4_arduboy # (
 	.RAM_TYPE("SRAM"),  // "BLOCK","SRAM"// If "SRAM" is choosen, will be a 32KB block of RAM.
 	.RAM_ADDR_WIDTH(15), // 32KB, if you use "SRAM" this value need to be 15.
 	.EEP_ADDR_WIDTH(10), // 1K Bytes.
-	.RESERVED_RAM_FOR_IO(12'h100), // Lowest 256 Bytes of RAM addresses are reserved for IO's.
+	.RESERVED_RAM_FOR_IO(16'h100), // Lowest 256 Bytes of RAM addresses are reserved for IO's.
 	.VECTOR_INT_TABLE_SIZE(43),// 42 of original ATmega32U4 + NMI
 	.WATCHDOG_CNT_WIDTH(0),//27 // We do not use watchdog, is not a critical design and most of arduboy games does not use him.
 
@@ -212,11 +217,19 @@ atmega32u4_arduboy # (
 	.USE_PLL(`USE_PLL),
 	.USE_PLL_HI_FREQ(`USE_PLL_HI_FREQ),
 	.USE_TIMER_0(`USE_TIMER_0),
+	.USE_REDUCED_TIM0(`USE_REDUCED_TIM0),
 	.USE_TIMER_1(`USE_TIMER_1),
+	.USE_REDUCED_TIM1(`USE_REDUCED_TIM1),
 	.USE_TIMER_3(`USE_TIMER_3),
+	.USE_REDUCED_TIM3(`USE_REDUCED_TIM3),
 	.USE_TIMER_4(`USE_TIMER_4),
 	.USE_SPI_1(`USE_SPI_1),
 	.USE_UART_1(`USE_UART_1),
+`ifdef USE_USB2UART
+	.USE_USB2UART("TRUE"),
+`else
+	.USE_USB2UART("FALSE"),
+`endif
 	.USE_TWI_1(`USE_TWI_1),
 	.USE_EEPROM(`USE_EEPROM),
 	.USE_RNG_AS_ADC(`USE_RNG_AS_ADC)
@@ -224,6 +237,7 @@ atmega32u4_arduboy # (
 	.core_rst(sys_rst),
 	.dev_rst(sys_rst),
 	.clk(sys_clk),
+	.clk48m_i(clk48m_i),
 	.clk_pll(pll_clk),
 	.nmi_sig(nmi_sig),
 	.nmi_ack(nmi_ack),
@@ -250,6 +264,8 @@ atmega32u4_arduboy # (
 	.uart_rx(UART_RX),
 	.twi_scl(),
 	.twi_sda(),
+	.usbp_io(),
+	.usbn_io(),
 
 	.io_addr(io_addr),
 	.io_out(io_out),
@@ -268,6 +284,8 @@ rtc #(
 	)rtc_inst(
 	.rst_i(nmi_rst),
 	.clk_i(sys_clk),
+	.clk_cnt_i(sys_clk),
+	.top_i(),
 	.int_o(nmi_sig),
 	.int_ack_i(nmi_ack)
 	);
@@ -281,6 +299,8 @@ atmega_pio # (
 	.PORT_OUT_ADDR('h22),
 	.DDR_ADDR('h21),
 	.PIN_ADDR('h20),
+	.PORT_CLEAR_ADDR('h01),	
+	.PORT_SET_ADDR('h02),
 	.PINMASK(8'b11111011),
 	.PULLUP_MASK(8'b00000000),
 	.PULLDN_MASK(8'b00000000),

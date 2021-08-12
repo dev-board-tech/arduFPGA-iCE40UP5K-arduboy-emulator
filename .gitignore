@@ -5,3 +5,4 @@ drc.log
 gen_embedded.log
 pyout.log
 tmp_synthesis.log
+.recovery
